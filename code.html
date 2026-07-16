@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>good night</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000000;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: #000000;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="animationCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configuration and State Tracking
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        let state = {
+            currentPhase: 'COUNTDOWN_3',
+            phaseStartTime: Date.now(),
+            globalTime: 0
+        };
+
+        const TIMINGS = {
+            COUNTDOWN_3: 1500,
+            COUNTDOWN_2: 1500,
+            COUNTDOWN_1: 1500,
+            TEXT_YOU: 2000,
+            TEXT_ARE: 2000,
+            TEXT_MY: 2000,
+            TEXT_LOVE: 2000,
+            HEART_FORM: 2500,
+            FINAL_LOOP: Infinity
+        };
+
+        // Characters for Cyber-Rain
+        const MATRIX_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXY❤️0123456789♥*+<>/§$";
+
+        // --- Matrix Digital Rain System ---
+        class MatrixColumn {
+            constructor(x) {
+                this.x = x;
+                this.y = Math.random() * 5 - height;
+                this.speed = 1.5 + Math.random() * 12;
+                this.length = 12 + Math.floor(Math.random() * 18);
+                this.history = [];
+            }
+            update() {
+                this.y += this.speed;
+                if (Math.random() < 0.03 || this.history.length === 0) {
+                    const char = MATRIX_GLYPHS[Math.floor(Math.random() * MATRIX_GLYPHS.length)];
+                    this.history.unshift(char);
+                    if (this.history.length > this.length) this.history.pop();
+                }
+                if (this.y - (this.length * 22) > height) {
+                    this.y = -20;
+                    this.speed = 1.5 + Math.random() * 3.5;
+                    this.length = 12 + Math.floor(Math.random() * 18);
+                    this.history = [];
+                }
+            }
+            draw() {
+                ctx.font = "600 15px monospace";
+                for (let i = 0; i < this.history.length; i++) {
+                    const charY = this.y - (i * 20);
+                    if (charY < 0 || charY > height) continue;
+
+                    const alpha = 1 - (i / this.length);
+                    if (alpha <= 0) continue;
+
+                    // Head is bright white, body alternates pink/magenta neon
+                    if (i === 0) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+                    } else {
+                        const color = i % 2 === 0 ? `rgba(255, 20, 147, ${alpha * 0.4})` : `rgba(255, 105, 180, ${alpha * 0.4})`;
+                        ctx.fillStyle = color;
+                    }
+                    ctx.fillText(this.history[i], this.x, charY);
+                }
+            }
+        }
+
+        // --- Ambient Background Floating Particles ---
+        class AmbientParticle {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * height;
+            }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + 10;
+                this.size = 1 + Math.random() * 2.5;
+                this.speedY = 0.3 + Math.random() * 0.7;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.alpha = 0.1 + Math.random() * 0.4;
+                this.color = Math.random() > 0.3 ? `rgba(255, 20, 147, ${this.alpha})` : `rgba(255, 255, 255, ${this.alpha})`;
+            }
+            update() {
+                this.y -= this.speedY;
+                this.x += this.speedX;
+                if (this.y < -10 || this.x < -10 || this.x > width + 10) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // --- Core Morphing Particle System (Dot-Matrix & Heart) ---
+        class ActiveParticle {
+            constructor(x, y) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.targetX = x;
+                this.targetY = y;
+                this.size = 4 + Math.random() * 2;
+                this.baseSize = this.size;
+                this.color = '#FFFFFF';
+                this.alpha = 0;
+                this.targetAlpha = 1;
+                this.easeSpeed = 0.05 + Math.random() * 0.04;
+            }
+            update(phaseProgress, phase) {
+                // Smooth interpolation to target grids
+                this.x += (this.targetX - this.x) * this.easeSpeed;
+                this.y += (this.targetY - this.y) * this.easeSpeed;
+
+                // Handle fading patterns specified by rules
+                if (phase.startsWith('COUNTDOWN_') || phase.startsWith('TEXT_')) {
+                    this.color = '#FFFFFF';
+                    if (phaseProgress < 0.25) {
+                        this.alpha = phaseProgress / 0.25; 
+                    } else if (phaseProgress > 0.75) {
+                        this.alpha = (1 - phaseProgress) / 0.25;
+                    } else {
+                        this.alpha = 1;
+                        // LED Shimmer/Flicker
+                        this.alpha -= Math.random() * 0.15;
+                    }
+                } else if (phase === 'HEART_FORM' || phase === 'FINAL_LOOP') {
+                    if (phaseProgress < 0.5 && phase === 'HEART_FORM') {
+                        this.alpha = phaseProgress / 0.5;
+                    } else {
+                        this.alpha = 1;
+                    }
+                    // Subtle organic pulse sizing
+                    this.size = this.baseSize + Math.sin(Date.now() * 0.005 + this.x) * 0.5;
+                }
+                this.alpha = Math.max(0, Math.min(1, this.alpha));
+            }
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // --- Orbiting Sparkle Particles ---
+        class SparkleParticle {
+            constructor() {
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = 120 + Math.random() * 80;
+                this.speed = 0.01 + Math.random() * 0.02;
+                this.size = 2 + Math.random() * 3;
+                this.alpha = Math.random();
+            }
+            update(cx, cy) {
+                this.angle += this.speed;
+                this.x = cx + Math.sin(this.angle) * this.radius;
+                this.y = cy + Math.cos(this.angle) * (this.radius * 0.8);
+                this.alpha = 0.3 + Math.abs(Math.sin(Date.now() * 0.003 + this.angle)) * 0.7;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(255, 105, 180, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Instantiate Global Systems
+        const columns = [];
+        const ambientParticles = [];
+        let activeParticles = [];
+        const sparkles = [];
+        
+        const totalColumns = Math.floor(width / 18);
+        for (let i = 0; i < totalColumns; i++) columns.push(new MatrixColumn(i * 18));
+        for (let i = 0; i < 60; i++) ambientParticles.push(new AmbientParticle());
+        for (let i = 0; i < 40; i++) sparkles.push(new SparkleParticle());
+
+        // Helper: Sample Text Matrix Grids using offscreen buffer
+        function generateGridFromText(text, sizeMultiplier = 1) {
+            const offscreen = document.createElement('canvas');
+            const octx = offscreen.getContext('2d');
+            offscreen.width = width;
+            offscreen.height = height;
+
+            octx.fillStyle = '#000000';
+            octx.fillRect(0, 0, width, height);
+
+            const dynamicSize = Math.min(width * 0.16, height * 0.3) * sizeMultiplier;
+            octx.font = `900 ${dynamicSize}px Courier New, monospace`;
+            octx.textAlign = 'center';
+            octx.textBaseline = 'middle';
+            octx.fillStyle = '#FFFFFF';
+            octx.fillText(text, width / 2, height / 2);
+
+            const imgData = octx.getImageData(0, 0, width, height).data;
+            const targets = [];
+            const samplingStep = width < 600 ? 5 : 7; // Responsive density alignment
+
+            for (let y = 0; y < height; y += samplingStep) {
+                for (let x = 0; x < width; x += samplingStep) {
+                    const idx = (y * width + x) * 4;
+                    if (imgData[idx] > 128) {
+                        targets.push({ x, y });
+                    }
+                }
+            }
+            return targets;
+        }
+
+        // Updated animation placeholder: heart formation redesigned concept
+// Helper: Generate Cryptographic Cybernetic Heart Positions
+        function generateHeartPoints(count) {
+            const targets = [];
+            const cx = width / 2;
+            const cy = height / 2 - 30;
+            const scalingFactor = Math.min(width * 0.013, height * 0.018);
+
+            for (let i = 0; i < count; i++) {
+                const t = (i / count) * Math.PI * 2;
+                // Parametric Formulation
+                const tx = 16 * Math.pow(Math.sin(t), 3);
+                const ty = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                
+                // Inward distribution factor for digital volume fill
+                const internalDistributor = 0.2 + 0.8 * Math.random();
+
+                targets.push({
+                    x: cx + tx * scalingFactor * internalDistributor,
+                    y: cy + ty * scalingFactor * internalDistributor,
+                    color: Math.random() > 0.5 ? '#FF1493' : '#FF69B4'
+                });
+            }
+            return targets;
+        }
+
+        // Transition Coordinator
+        function morphToTarget(targetPoints) {
+            if (activeParticles.length < targetPoints.length) {
+                const diff = targetPoints.length - activeParticles.length;
+                for (let i = 0; i < diff; i++) {
+                    activeParticles.push(new ActiveParticle(width / 2, height / 2));
+                }
+            }
+
+            // Shuffle matching pairs to maximize look of technological dispersion
+            targetPoints.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < activeParticles.length; i++) {
+                if (i < targetPoints.length) {
+                    activeParticles[i].targetX = targetPoints[i].x;
+                    activeParticles[i].targetY = targetPoints[i].y;
+                    if (targetPoints[i].color) {
+                        activeParticles[i].color = targetPoints[i].color;
+                    }
+                } else {
+                    // Send excess components off-viewport gracefully
+                    activeParticles[i].targetY = height + 50;
+                    activeParticles[i].targetX = Math.random() * width;
+                }
+            }
+        }
+
+        // Initialize state configuration
+        morphToTarget(generateGridFromText("3", 1.2));
+
+        // Global Loop Execution
+        function mainLoop() {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            const now = Date.now();
+            let phaseElapsed = now - state.phaseStartTime;
+            let currentPhaseDuration = TIMINGS[state.currentPhase];
+
+            // State Transitions Engine
+            if (phaseElapsed >= currentPhaseDuration) {
+                const phases = Object.keys(TIMINGS);
+                const currentIdx = phases.indexOf(state.currentPhase);
+                if (currentIdx < phases.length - 1) {
+                    state.currentPhase = phases[currentIdx + 1];
+                    state.phaseStartTime = Date.now();
+                    phaseElapsed = 0;
+                    currentPhaseDuration = TIMINGS[state.currentPhase];
+
+                    // Fire Target Recalculations per lifecycle state
+                    if (state.currentPhase === 'COUNTDOWN_2') morphToTarget(generateGridFromText("2", 1.2));
+                    if (state.currentPhase === 'COUNTDOWN_1') morphToTarget(generateGridFromText("1", 1.2));
+                    if (state.currentPhase === 'TEXT_YOU') morphToTarget(generateGridFromText("YOU", 0.9));
+                    if (state.currentPhase === 'TEXT_ARE') morphToTarget(generateGridFromText("ARE", 0.9));
+                    if (state.currentPhase === 'TEXT_MY') morphToTarget(generateGridFromText("MY", 0.9));
+                    if (state.currentPhase === 'TEXT_LOVE') morphToTarget(generateGridFromText("LOVE", 0.9));
+                    if (state.currentPhase === 'HEART_FORM') morphToTarget(generateHeartPoints(width > 600 ? 750 : 450));
+                }
+            }
+
+            let progress = phaseElapsed / currentPhaseDuration;
+
+            // 1. Render Background Elements
+            columns.forEach(col => { col.update(); col.draw(); });
+            ambientParticles.forEach(p => { p.update(); p.draw(); });
+
+            // 2. Adjust Heart Pulse Transformation over Time
+            if (state.currentPhase === 'HEART_FORM' || state.currentPhase === 'FINAL_LOOP') {
+                const pulseScale = 1 + 0.04 * Math.sin(Date.now() * 0.005);
+                const cx = width / 2;
+                const cy = height / 2 - 30;
+
+                activeParticles.forEach(p => {
+                    if (p.targetY !== height + 50) {
+                        const dx = p.targetX - cx;
+                        const dy = p.targetY - cy;
+                        
+                        // Modulate position mapping in memory using current heart scale step
+                        p.x += ((cx + dx * pulseScale) - p.x) * 0.1;
+                        p.y += ((cy + dy * pulseScale) - p.y) * 0.1;
+                        p.update(progress, state.currentPhase);
+                        p.draw();
+                    }
+                });
+
+                // Display Sparkle Ring
+                sparkles.forEach(s => { s.update(cx, cy); s.draw(); });
+            } else {
+                // Render Default Dot Grids
+                activeParticles.forEach(p => {
+                    p.update(progress, state.currentPhase);
+                    p.draw();
+                });
+            }
+
+            // High-Contrast Engine Layer for Bloom Effects
+            if (!state.currentPhase.startsWith('COUNTDOWN_') && !state.currentPhase.startsWith('TEXT_')) {
+                ctx.shadowBlur = 0; 
+            }
+
+            // 3. Render Final Romantic Message Overlay
+            if (state.currentPhase === 'FINAL_LOOP' || (state.currentPhase === 'HEART_FORM' && progress > 0.6)) {
+                let textAlpha = state.currentPhase === 'FINAL_LOOP' ? 1 : (progress - 0.6) / 0.4;
+                
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Soft Cyber-Pulse Text Shadow Glow
+                ctx.shadowColor = '#FF69B4';
+                ctx.shadowBlur = 15;
+
+                const textY = height / 2 - 30;
+                const responsiveFontSize = Math.min(width * 0.045, 32);
+
+                ctx.font = `300 ${responsiveFontSize}px 'Segoe UI', -apple-system, sans-serif`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
+                ctx.fillText("I 💜 You Anastasia", width / 2, textY - 15);
+
+                
+                ctx.restore();
+            }
+
+            requestAnimationFrame(mainLoop);
+        }
+
+        // Fluid Screen Scaling adjustments
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            
+            columns.length = 0;
+            const updatedTotalColumns = Math.floor(width / 18);
+            for (let i = 0; i < updatedTotalColumns; i++) columns.push(new MatrixColumn(i * 18));
+
+            // Force recalculations of targeted array elements depending on active configuration context
+            if (state.currentPhase.startsWith('COUNTDOWN_')) {
+                morphToTarget(generateGridFromText(state.currentPhase.slice(-1), 1.2));
+            } else if (state.currentPhase.startsWith('TEXT_')) {
+                morphToTarget(generateGridFromText(state.currentPhase.split('_')[1], 0.9));
+            } else {
+                morphToTarget(generateHeartPoints(width > 600 ? 750 : 450));
+            }
+        });
+
+        // Fire Execution Engine Loop
+        mainLoop();
+    </script>
+</body>
+</html>
