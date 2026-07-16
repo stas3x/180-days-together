@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>good night</title>
+    <title>ILYSM</title>
     <style>
         * {
             margin: 0;
@@ -33,7 +33,6 @@
         const canvas = document.getElementById('animationCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Configuration and State Tracking
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
@@ -50,20 +49,19 @@
             TEXT_YOU: 2000,
             TEXT_ARE: 2000,
             TEXT_MY: 2000,
-            TEXT_LOVE: 2000,
-            HEART_FORM: 2500,
+            TEXT_WORLD: 2000,
+            HEART_FORM: 3000, // Время на сборку сердца вихрем
             FINAL_LOOP: Infinity
         };
 
-        // Characters for Cyber-Rain
-        const MATRIX_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXY❤️0123456789♥*+<>/§$";
+        const MATRIX_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789♥*♥*+<>/§$";
 
-        // --- Matrix Digital Rain System ---
+        // --- Matrix Digital Rain ---
         class MatrixColumn {
             constructor(x) {
                 this.x = x;
-                this.y = Math.random() * 5 - height;
-                this.speed = 1.5 + Math.random() * 12;
+                this.y = Math.random() * -height;
+                this.speed = 1.5 + Math.random() * 13.5;
                 this.length = 12 + Math.floor(Math.random() * 18);
                 this.history = [];
             }
@@ -90,7 +88,6 @@
                     const alpha = 1 - (i / this.length);
                     if (alpha <= 0) continue;
 
-                    // Head is bright white, body alternates pink/magenta neon
                     if (i === 0) {
                         ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
                     } else {
@@ -102,7 +99,7 @@
             }
         }
 
-        // --- Ambient Background Floating Particles ---
+        // --- Ambient Background Particles ---
         class AmbientParticle {
             constructor() {
                 this.reset();
@@ -132,26 +129,35 @@
             }
         }
 
-        // --- Core Morphing Particle System (Dot-Matrix & Heart) ---
+        // --- Active Particles (with Vortex/Swirl effect) ---
         class ActiveParticle {
             constructor(x, y) {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
                 this.targetX = x;
                 this.targetY = y;
-                this.size = 4 + Math.random() * 2;
+                this.size = 3 + Math.random() * 3;
                 this.baseSize = this.size;
                 this.color = '#FFFFFF';
                 this.alpha = 0;
-                this.targetAlpha = 1;
-                this.easeSpeed = 0.05 + Math.random() * 0.04;
+                this.easeSpeed = 0.04 + Math.random() * 0.03;
+                this.direction = Math.random() > 0.5 ? 1 : -1; 
             }
             update(phaseProgress, phase) {
-                // Smooth interpolation to target grids
-                this.x += (this.targetX - this.x) * this.easeSpeed;
-                this.y += (this.targetY - this.y) * this.easeSpeed;
+                let dx = this.targetX - this.x;
+                let dy = this.targetY - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
 
-                // Handle fading patterns specified by rules
+                this.x += dx * this.easeSpeed;
+                this.y += dy * this.easeSpeed;
+
+                // Эффект вихря при сборке сердца
+                if (phase === 'HEART_FORM' && phaseProgress < 0.8) {
+                    let swirlStrength = (1 - (phaseProgress / 0.8)) * 12; 
+                    this.x += (-dy / (dist + 1)) * swirlStrength * this.direction;
+                    this.y += (dx / (dist + 1)) * swirlStrength * this.direction;
+                }
+
                 if (phase.startsWith('COUNTDOWN_') || phase.startsWith('TEXT_')) {
                     this.color = '#FFFFFF';
                     if (phaseProgress < 0.25) {
@@ -160,17 +166,14 @@
                         this.alpha = (1 - phaseProgress) / 0.25;
                     } else {
                         this.alpha = 1;
-                        // LED Shimmer/Flicker
-                        this.alpha -= Math.random() * 0.15;
+                        this.alpha -= Math.random() * 0.15; 
                     }
                 } else if (phase === 'HEART_FORM' || phase === 'FINAL_LOOP') {
                     if (phaseProgress < 0.5 && phase === 'HEART_FORM') {
                         this.alpha = phaseProgress / 0.5;
                     } else {
-                        this.alpha = 1;
+                        this.alpha = 0.8 + Math.random() * 0.2; 
                     }
-                    // Subtle organic pulse sizing
-                    this.size = this.baseSize + Math.sin(Date.now() * 0.005 + this.x) * 0.5;
                 }
                 this.alpha = Math.max(0, Math.min(1, this.alpha));
             }
@@ -183,20 +186,20 @@
             }
         }
 
-        // --- Orbiting Sparkle Particles ---
+        // --- Orbiting Sparkles ---
         class SparkleParticle {
             constructor() {
                 this.angle = Math.random() * Math.PI * 2;
-                this.radius = 120 + Math.random() * 80;
-                this.speed = 0.01 + Math.random() * 0.02;
-                this.size = 2 + Math.random() * 3;
+                this.radius = 140 + Math.random() * 100;
+                this.speed = 0.008 + Math.random() * 0.015;
+                this.size = 1.5 + Math.random() * 2.5;
                 this.alpha = Math.random();
             }
             update(cx, cy) {
                 this.angle += this.speed;
                 this.x = cx + Math.sin(this.angle) * this.radius;
-                this.y = cy + Math.cos(this.angle) * (this.radius * 0.8);
-                this.alpha = 0.3 + Math.abs(Math.sin(Date.now() * 0.003 + this.angle)) * 0.7;
+                this.y = cy + Math.cos(this.angle) * (this.radius * 0.75);
+                this.alpha = 0.2 + Math.abs(Math.sin(Date.now() * 0.002 + this.angle)) * 0.8;
             }
             draw() {
                 ctx.fillStyle = `rgba(255, 105, 180, ${this.alpha})`;
@@ -206,7 +209,6 @@
             }
         }
 
-        // Instantiate Global Systems
         const columns = [];
         const ambientParticles = [];
         let activeParticles = [];
@@ -215,9 +217,9 @@
         const totalColumns = Math.floor(width / 18);
         for (let i = 0; i < totalColumns; i++) columns.push(new MatrixColumn(i * 18));
         for (let i = 0; i < 60; i++) ambientParticles.push(new AmbientParticle());
-        for (let i = 0; i < 40; i++) sparkles.push(new SparkleParticle());
+        for (let i = 0; i < 50; i++) sparkles.push(new SparkleParticle());
 
-        // Helper: Sample Text Matrix Grids using offscreen buffer
+        // Метод сэмплирования текста с оффскрин-буфера
         function generateGridFromText(text, sizeMultiplier = 1) {
             const offscreen = document.createElement('canvas');
             const octx = offscreen.getContext('2d');
@@ -236,7 +238,7 @@
 
             const imgData = octx.getImageData(0, 0, width, height).data;
             const targets = [];
-            const samplingStep = width < 600 ? 5 : 7; // Responsive density alignment
+            const samplingStep = width < 600 ? 5 : 7;
 
             for (let y = 0; y < height; y += samplingStep) {
                 for (let x = 0; x < width; x += samplingStep) {
@@ -249,33 +251,65 @@
             return targets;
         }
 
-        // Updated animation placeholder: heart formation redesigned concept
-// Helper: Generate Cryptographic Cybernetic Heart Positions
-        function generateHeartPoints(count) {
-            const targets = [];
+        // --- Метод генерации плотного, заполненного сердца ---
+        function generateDenseHeart() {
+            const offscreen = document.createElement('canvas');
+            const octx = offscreen.getContext('2d');
+            offscreen.width = width;
+            offscreen.height = height;
+
+            octx.fillStyle = '#000000';
+            octx.fillRect(0, 0, width, height);
+
             const cx = width / 2;
             const cy = height / 2 - 30;
-            const scalingFactor = Math.min(width * 0.013, height * 0.018);
+            const scalingFactor = Math.min(width * 0.013, height * 0.018) * 1.15;
 
-            for (let i = 0; i < count; i++) {
-                const t = (i / count) * Math.PI * 2;
-                // Parametric Formulation
+            octx.fillStyle = '#FFFFFF';
+            octx.beginPath();
+            for (let t = 0; t <= Math.PI * 2 + 0.05; t += 0.02) {
                 const tx = 16 * Math.pow(Math.sin(t), 3);
                 const ty = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-                
-                // Inward distribution factor for digital volume fill
-                const internalDistributor = 0.2 + 0.8 * Math.random();
+                const px = cx + tx * scalingFactor;
+                const py = cy + ty * scalingFactor;
+                if (t === 0) octx.moveTo(px, py);
+                else octx.lineTo(px, py);
+            }
+            octx.closePath();
+            octx.fill();
 
-                targets.push({
-                    x: cx + tx * scalingFactor * internalDistributor,
-                    y: cy + ty * scalingFactor * internalDistributor,
-                    color: Math.random() > 0.5 ? '#FF1493' : '#FF69B4'
-                });
+            const imgData = octx.getImageData(0, 0, width, height).data;
+            const targets = [];
+            const samplingStep = width < 600 ? 6 : 8;
+
+            for (let y = 0; y < height; y += samplingStep) {
+                for (let x = 0; x < width; x += samplingStep) {
+                    const idx = (y * width + x) * 4;
+                    if (imgData[idx] > 128) {
+                        let isEdge = false;
+                        for (let edgeY = -samplingStep; edgeY <= samplingStep; edgeY += samplingStep) {
+                            for (let edgeX = -samplingStep; edgeX <= samplingStep; edgeX += samplingStep) {
+                                let checkIdx = ((y + edgeY) * width + (x + edgeX)) * 4;
+                                if (imgData[checkIdx] <= 128) {
+                                    isEdge = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        targets.push({
+                            x: x,
+                            y: y,
+                            color: isEdge 
+                                ? '#FF1493' // Яркий розовый контур
+                                : (Math.random() > 0.4 ? '#FF69B4' : '#FF1493') // Заполненное ядро
+                        });
+                    }
+                }
             }
             return targets;
         }
 
-        // Transition Coordinator
         function morphToTarget(targetPoints) {
             if (activeParticles.length < targetPoints.length) {
                 const diff = targetPoints.length - activeParticles.length;
@@ -284,7 +318,6 @@
                 }
             }
 
-            // Shuffle matching pairs to maximize look of technological dispersion
             targetPoints.sort(() => Math.random() - 0.5);
 
             for (let i = 0; i < activeParticles.length; i++) {
@@ -295,17 +328,14 @@
                         activeParticles[i].color = targetPoints[i].color;
                     }
                 } else {
-                    // Send excess components off-viewport gracefully
                     activeParticles[i].targetY = height + 50;
                     activeParticles[i].targetX = Math.random() * width;
                 }
             }
         }
 
-        // Initialize state configuration
         morphToTarget(generateGridFromText("3", 1.2));
 
-        // Global Loop Execution
         function mainLoop() {
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, width, height);
@@ -314,7 +344,7 @@
             let phaseElapsed = now - state.phaseStartTime;
             let currentPhaseDuration = TIMINGS[state.currentPhase];
 
-            // State Transitions Engine
+            // State Machine transitions
             if (phaseElapsed >= currentPhaseDuration) {
                 const phases = Object.keys(TIMINGS);
                 const currentIdx = phases.indexOf(state.currentPhase);
@@ -324,26 +354,35 @@
                     phaseElapsed = 0;
                     currentPhaseDuration = TIMINGS[state.currentPhase];
 
-                    // Fire Target Recalculations per lifecycle state
                     if (state.currentPhase === 'COUNTDOWN_2') morphToTarget(generateGridFromText("2", 1.2));
                     if (state.currentPhase === 'COUNTDOWN_1') morphToTarget(generateGridFromText("1", 1.2));
                     if (state.currentPhase === 'TEXT_YOU') morphToTarget(generateGridFromText("YOU", 0.9));
                     if (state.currentPhase === 'TEXT_ARE') morphToTarget(generateGridFromText("ARE", 0.9));
                     if (state.currentPhase === 'TEXT_MY') morphToTarget(generateGridFromText("MY", 0.9));
-                    if (state.currentPhase === 'TEXT_LOVE') morphToTarget(generateGridFromText("LOVE", 0.9));
-                    if (state.currentPhase === 'HEART_FORM') morphToTarget(generateHeartPoints(width > 600 ? 750 : 450));
+                    if (state.currentPhase === 'TEXT_WORLD') morphToTarget(generateGridFromText("WORLD", 0.9));
+                    if (state.currentPhase === 'HEART_FORM') morphToTarget(generateDenseHeart());
                 }
             }
 
             let progress = phaseElapsed / currentPhaseDuration;
 
-            // 1. Render Background Elements
+            // 1. Matrix Background & Ambient Particles
             columns.forEach(col => { col.update(); col.draw(); });
             ambientParticles.forEach(p => { p.update(); p.draw(); });
 
-            // 2. Adjust Heart Pulse Transformation over Time
+            // 2. Heart-beat & Rendering Logic
             if (state.currentPhase === 'HEART_FORM' || state.currentPhase === 'FINAL_LOOP') {
-                const pulseScale = 1 + 0.04 * Math.sin(Date.now() * 0.005);
+                // Реалистичный двойной удар сердца (Lub-Dub)
+                let pulse = 1;
+                let t = (Date.now() % 1400) / 1400;
+                if (t < 0.12) {
+                    pulse = 1 + Math.sin((t / 0.12) * Math.PI) * 0.08; 
+                } else if (t >= 0.12 && t < 0.22) {
+                    pulse = 1; 
+                } else if (t >= 0.22 && t < 0.34) {
+                    pulse = 1 + Math.sin(((t - 0.22) / 0.12) * Math.PI) * 0.04; 
+                }
+
                 const cx = width / 2;
                 const cy = height / 2 - 30;
 
@@ -352,56 +391,138 @@
                         const dx = p.targetX - cx;
                         const dy = p.targetY - cy;
                         
-                        // Modulate position mapping in memory using current heart scale step
-                        p.x += ((cx + dx * pulseScale) - p.x) * 0.1;
-                        p.y += ((cy + dy * pulseScale) - p.y) * 0.1;
+                        p.x += ((cx + dx * pulse) - p.x) * 0.15;
+                        p.y += ((cy + dy * pulse) - p.y) * 0.15;
                         p.update(progress, state.currentPhase);
                         p.draw();
                     }
                 });
 
-                // Display Sparkle Ring
                 sparkles.forEach(s => { s.update(cx, cy); s.draw(); });
             } else {
-                // Render Default Dot Grids
                 activeParticles.forEach(p => {
                     p.update(progress, state.currentPhase);
                     p.draw();
                 });
             }
 
-            // High-Contrast Engine Layer for Bloom Effects
-            if (!state.currentPhase.startsWith('COUNTDOWN_') && !state.currentPhase.startsWith('TEXT_')) {
-                ctx.shadowBlur = 0; 
-            }
-
-            // 3. Render Final Romantic Message Overlay
-            if (state.currentPhase === 'FINAL_LOOP' || (state.currentPhase === 'HEART_FORM' && progress > 0.6)) {
-                let textAlpha = state.currentPhase === 'FINAL_LOOP' ? 1 : (progress - 0.6) / 0.4;
+            // 3. New Refactored Final Romantic Message Overlay with Holographic Decryption & Chromatic Pulse
+            if (state.currentPhase === 'FINAL_LOOP' || (state.currentPhase === 'HEART_FORM' && progress > 0.4)) {
+                let decryptProgress = 1;
+                let textAlpha = 1;
                 
+                if (state.currentPhase === 'HEART_FORM') {
+                    decryptProgress = Math.max(0, Math.min(1, (progress - 0.4) / 0.5));
+                    textAlpha = decryptProgress; 
+                }
+
+                const cx = width / 2;
+                const textY = height / 2 - 30;
+                const responsiveFontSize = Math.min(width * 0.04, 26);
+
+                // Посимвольный эффект дешифровки
+                const getScrambledText = (originalText, prog) => {
+                    const arr = Array.from(originalText);
+                    if (prog >= 1) return originalText;
+                    let result = "";
+                    for (let i = 0; i < arr.length; i++) {
+                        if (arr[i] === " ") {
+                            result += " ";
+                            continue;
+                        }
+                        let charThreshold = (i / arr.length) * 0.6;
+                        if (prog > charThreshold + Math.random() * 0.25) {
+                            result += arr[i];
+                        } else {
+                            result += MATRIX_GLYPHS[Math.floor(Math.random() * MATRIX_GLYPHS.length)];
+                        }
+                    }
+                    return result;
+                };
+
+                let cursor = (Math.floor(Date.now() / 150) % 2 === 0) ? "▒" : " ";
+                
+                let rawLine1 = "I 💜 YOU";
+                let rawLine2 = "ANASTASIA";
+
+                let scrambledLine1 = getScrambledText(rawLine1, decryptProgress);
+                let scrambledLine2 = getScrambledText(rawLine2, decryptProgress);
+                
+                if (decryptProgress < 1) {
+                    scrambledLine2 += cursor;
+                }
+
+                // Масштаб и свечение текста синхронизированы с сердцем
+                let heartBeatTime = (Date.now() % 1400) / 1400;
+                let textScale = 1;
+                let textGlow = 10;
+
+                if (heartBeatTime < 0.12) {
+                    let beatFactor = Math.sin((heartBeatTime / 0.12) * Math.PI);
+                    textScale = 1 + beatFactor * 0.06; 
+                    textGlow = 12 + beatFactor * 16;  
+                } else if (heartBeatTime >= 0.12 && heartBeatTime < 0.22) {
+                    textScale = 1;
+                    textGlow = 10;
+                } else if (heartBeatTime >= 0.22 && heartBeatTime < 0.34) {
+                    let beatFactor2 = Math.sin(((heartBeatTime - 0.22) / 0.12) * Math.PI);
+                    textScale = 1 + beatFactor2 * 0.03; 
+                    textGlow = 11 + beatFactor2 * 8;
+                }
+
                 ctx.save();
+                
+                ctx.translate(cx, textY);
+                ctx.scale(textScale, textScale);
+                ctx.translate(-cx, -textY);
+
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
-                // Soft Cyber-Pulse Text Shadow Glow
-                ctx.shadowColor = '#FF69B4';
-                ctx.shadowBlur = 15;
 
-                const textY = height / 2 - 30;
-                const responsiveFontSize = Math.min(width * 0.045, 32);
-
+                // --- СТРОКА 1: I LOVE 💜 YOU ---
                 ctx.font = `300 ${responsiveFontSize}px 'Segoe UI', -apple-system, sans-serif`;
-                ctx.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
-                ctx.fillText("I 💜 You Anastasia", width / 2, textY - 15);
+                ctx.letterSpacing = "6px"; 
 
-                
+                // Левый хроматический слой (Neon Pink)
+                ctx.fillStyle = `rgba(255, 20, 147, ${textAlpha * 0.7})`;
+                ctx.fillText(scrambledLine1, cx - 2, textY - 18);
+
+                // Правый хроматический слой (Neon Cyan)
+                ctx.fillStyle = `rgba(0, 245, 255, ${textAlpha * 0.7})`;
+                ctx.fillText(scrambledLine1, cx + 2, textY - 18);
+
+                // Основной центральный белый слой с блумом
+                ctx.shadowColor = '#FF1493';
+                ctx.shadowBlur = textGlow;
+                ctx.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
+                ctx.fillText(scrambledLine1, cx, textY - 18);
+
+                ctx.shadowBlur = 0;
+
+                // --- СТРОКА 2: ANASTASIA ---
+                ctx.font = `800 ${responsiveFontSize + 8}px 'Segoe UI', -apple-system, sans-serif`;
+                ctx.letterSpacing = "8px"; 
+
+                // Левый хроматический слой (Neon Pink)
+                ctx.fillStyle = `rgba(255, 20, 147, ${textAlpha * 0.7})`;
+                ctx.fillText(scrambledLine2, cx - 2, textY + 28);
+
+                // Правый хроматический слой (Neon Cyan)
+                ctx.fillStyle = `rgba(0, 245, 255, ${textAlpha * 0.7})`;
+                ctx.fillText(scrambledLine2, cx + 2, textY + 28);
+
+                // Основной центральный слой с глубоким блумом
+                ctx.shadowColor = '#FF1493';
+                ctx.shadowBlur = textGlow * 1.3; 
+                ctx.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
+                ctx.fillText(scrambledLine2, cx, textY + 28);
+
                 ctx.restore();
             }
 
             requestAnimationFrame(mainLoop);
         }
 
-        // Fluid Screen Scaling adjustments
         window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
@@ -410,17 +531,15 @@
             const updatedTotalColumns = Math.floor(width / 18);
             for (let i = 0; i < updatedTotalColumns; i++) columns.push(new MatrixColumn(i * 18));
 
-            // Force recalculations of targeted array elements depending on active configuration context
             if (state.currentPhase.startsWith('COUNTDOWN_')) {
                 morphToTarget(generateGridFromText(state.currentPhase.slice(-1), 1.2));
             } else if (state.currentPhase.startsWith('TEXT_')) {
                 morphToTarget(generateGridFromText(state.currentPhase.split('_')[1], 0.9));
             } else {
-                morphToTarget(generateHeartPoints(width > 600 ? 750 : 450));
+                morphToTarget(generateDenseHeart());
             }
         });
 
-        // Fire Execution Engine Loop
         mainLoop();
     </script>
 </body>
